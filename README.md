@@ -48,7 +48,7 @@ If you use this repository, please cite the following manuscript:
 ```
 @article{Ebrahimi Derakhshan 2025 Subsidence,
   title={Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms},
-  author={Ebrahimi Derakhshan, Masoud  Ramzani, Mehrab and Ensani, Abbas},
+  author={Razeghi, Hamid Reza ;Mamaghanian, Jaber ;Ebrahimi Derakhshan, Masoud;  Ramzani, Mehrab and Ensani, Abbas},
   journal={Geotechnical and Geological Engineering},
   year={2025},
   note={Submitted}
