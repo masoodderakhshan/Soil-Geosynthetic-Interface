@@ -1,0 +1,124 @@
+=== Loading strain-stress data ===
+           0                    1                     2    \
+0          NaN  S=1,G=0,OMC=0,NS=50  S=1,G=0,OMC=0,NS=100   
+1       STRAIN          STRESS(KPA)           STRESS(KPA)   
+2  0.666666667             59.64854               76.7772   
+3  1.333333333             69.88462              93.19928   
+4            2              73.9636             105.60749   
+
+                    3                    4                     5    \
+0  S=1,G=0,OMC=0,NS=150  S=1,G=0,OMC=2,NS=50  S=1,G=0,OMC=2,NS=100   
+1           STRESS(KPA)          STRESS(KPA)           STRESS(KPA)   
+2              87.19619             56.81051              73.64581   
+3              106.0011             65.89547              88.51062   
+4              115.2546             69.65961              99.14148   
+
+                    6                    7                     8    \
+0  S=1,G=0,OMC=2,NS=150  S=1,G=0,OMC=4,NS=50  S=1,G=0,OMC=4,NS=100   
+1           STRESS(KPA)          STRESS(KPA)           STRESS(KPA)   
+2              86.57694             53.20985              67.10795   
+3              103.0445             61.09606              81.10071   
+4             110.66929             64.50834              90.92546   
+
+                    9    ...                   99                   100  \
+0  S=1,G=0,OMC=4,NS=150  ...  S=2,G=4,OMC=4,NS=150  S=2,G=5,OMC=0,NS=50   
+1           STRESS(KPA)  ...           STRESS(KPA)          STRESS(KPA)   
+2              73.40527  ...              57.69194             36.31804   
+3              86.30435  ...              67.42237             42.56539   
+4              95.06706  ...              72.44968             45.33654   
+
+                    101                   102                  103  \
+0  S=2,G=5,OMC=0,NS=100  S=2,G=5,OMC=0,NS=150  S=2,G=5,OMC=2,NS=50   
+1           STRESS(KPA)           STRESS(KPA)          STRESS(KPA)   
+2              46.62083              68.45738             34.13833   
+3              58.15006              81.04356             39.99014   
+4              64.10477              87.67739             42.43179   
+
+                    104                   105                  106  \
+0  S=2,G=5,OMC=2,NS=100  S=2,G=5,OMC=2,NS=150  S=2,G=5,OMC=4,NS=50   
+1           STRESS(KPA)           STRESS(KPA)          STRESS(KPA)   
+2              46.75008              68.11243             34.65492   
+3              55.92903              79.83696             39.70765   
+4              60.60346               85.8264              41.9024   
+
+                    107                   108  
+0  S=2,G=5,OMC=4,NS=100  S=2,G=5,OMC=4,NS=150  
+1           STRESS(KPA)           STRESS(KPA)  
+2              48.09777              66.29833  
+3              55.90984              77.23493  
+4              59.74895              82.78108  
+
+[5 rows x 109 columns]
+
+=== Combined tidy data ===
+     Strain  Stress_kPa    S    G  OMC    NS  Test
+0  0.666667    59.64854  1.0  0.0  0.0  50.0     1
+1  1.333333    69.88462  1.0  0.0  0.0  50.0     1
+2  2.000000    73.96360  1.0  0.0  0.0  50.0     1
+3  2.666667    76.41908  1.0  0.0  0.0  50.0     1
+4  3.333333    75.92300  1.0  0.0  0.0  50.0     1
+
+Train + Validation Set: (2754, 5)
+Final Test Set: (486, 5)
+
+=== Hyperparameter Tuning for LightGBM ===
+Best Hyperparameters for LightGBM: {'learning_rate': 0.1, 'n_estimators': 448, 'num_leaves': 34, 'reg_alpha': 0.5, 'reg_lambda': 1}
+
+=== K-Fold Cross-Validation for LightGBM ===
+
+Cross-Validation R² Scores: [0.9976 0.9962 0.9976 0.9975 0.9966]
+Average Cross-Validation R²: 0.9971 ± 0.0006
+
+Cross-Validation RMSE Scores: [1.3606 1.6517 1.3167 1.3893 1.6422]
+Average Cross-Validation RMSE: 1.4721 ± 0.1447
+
+=== Final Test Metrics for LightGBM on Unseen Data ===
+MAE: 0.8649
+RMSE: 1.2993
+R2: 0.9977
+
+=== Hyperparameter Tuning for MLP ===
+Best Hyperparameters for MLP: {'learning_rate': 'adaptive', 'hidden_layer_sizes': (50, 50), 'alpha': 0.001, 'activation': 'relu'}
+
+=== K-Fold Cross-Validation for MLP ===
+
+Cross-Validation R² Scores: [0.9941 0.9891 0.9911 0.9938 0.99  ]
+Average Cross-Validation R²: 0.9916 ± 0.0020
+
+Cross-Validation RMSE Scores: [2.1428 2.8069 2.5279 2.18   2.8208]
+Average Cross-Validation RMSE: 2.4957 ± 0.2925
+
+=== Final Test Metrics for MLP on Unseen Data ===
+MAE: 1.5826
+RMSE: 2.2695
+R2: 0.9929
+
+=== Hyperparameter Tuning for XGBoost ===
+Best Hyperparameters for XGBoost: {'learning_rate': 0.1, 'max_depth': 6, 'n_estimators': 419, 'reg_alpha': 0, 'reg_lambda': 0.5}
+
+=== K-Fold Cross-Validation for XGBoost ===
+Cross-Validation R² Scores: [0.998  0.9971 0.9983 0.9987 0.9976]
+Average Cross-Validation R²: 0.9979 ± 0.0005
+
+Cross-Validation RMSE Scores: [1.2428 1.4415 1.1177 0.9988 1.3926]
+Average Cross-Validation RMSE: 1.2387 ± 0.1656
+
+=== Final Test Metrics for XGBoost on Unseen Data ===
+MAE: 0.6682
+RMSE: 1.1128
+R2: 0.9983
+
+=== Hyperparameter Tuning for CatBoost ===
+Best Hyperparameters for CatBoost: {'depth': 6, 'iterations': 419, 'l2_leaf_reg': 1, 'learning_rate': 0.1}
+
+=== K-Fold Cross-Validation for CatBoost ===
+Cross-Validation R² Scores: [0.9986 0.9979 0.9988 0.999  0.9985]
+Average Cross-Validation R²: 0.9985 ± 0.0004
+
+Cross-Validation RMSE Scores: [1.0639 1.2388 0.9387 0.873  1.0952]
+Average Cross-Validation RMSE: 1.0419 ± 0.1275
+
+=== Final Test Metrics for CatBoost on Unseen Data ===
+MAE: 0.6145
+RMSE: 0.9498
+R2: 0.9988

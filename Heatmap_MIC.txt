@@ -1,0 +1,77 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import io
+import numpy as np
+
+# Set the default font for all plot elements
+plt.rcParams['font.family'] = 'DejaVu Serif'
+
+# 1. Store the data in a string
+data = """
+Mean_Interface_Coefficient_(S1)	Mean_Interface_Coefficient_(S2)
+0.87	0.94	
+0.81	0.92
+0.75	0.89
+0.89	1.01	
+0.86	1.10	
+0.84	1.32
+0.89	1.09	
+0.86	1.16	
+0.81	1.41	
+0.93	1.03	
+0.91	1.13	
+0.88	1.37	
+0.95	1.11	
+0.94	1.23	
+0.87	1.51	
+"""
+
+# 2. Read the data into a pandas DataFrame
+df = pd.read_csv(io.StringIO(data), sep='\s+')
+
+# Add 'G' and 'OMC' columns, assuming the same structure as the example
+df['G'] = np.repeat(np.arange(5), 3)
+df['OMC'] = np.tile([0, 2, 4], 5)
+
+
+# 3. Create a 2x2 subplot figure
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Flatten the axes array for easy iteration
+axes = axes.flatten()
+
+# List of columns to plot and their corresponding colormaps
+columns = ['Mean_Interface_Coefficient_(S1)', 'Mean_Interface_Coefficient_(S2)']
+cmaps = ['Pastel2', 'Accent']
+cbar_labels = ['Mean Interface Coefficient (S1)', 'Mean Interface Coefficient (S2)']
+
+# 4. Loop through columns and axes to create each heatmap
+for ax, col, cmap, cbar_label in zip(axes, columns, cmaps, cbar_labels):
+    # Pivot the data for the current column
+    heatmap_data = df.pivot(index='OMC', columns='G', values=col)
+
+    # Create the heatmap
+    sns.heatmap(
+        heatmap_data,
+        ax=ax,
+        annot=True,
+        fmt=".2f",
+        cmap=cmap,
+        linewidths=.5,
+        linecolor='gray'
+    )
+
+    # Customize the plot
+    ax.collections[0].colorbar.set_label(cbar_label, fontsize=14)
+    ax.set_title(f'Heatmap of {cbar_label}', fontsize=16)
+    ax.set_xlabel('G', fontsize=14)
+    ax.set_ylabel('OMC', fontsize=14)
+    ax.tick_params(axis='x', labelsize=12)
+    ax.tick_params(axis='y', labelsize=12)
+
+
+# 5. Adjust layout and save the figure
+plt.tight_layout(rect=[0, 0, 1, 0.96])
+fig.suptitle('Geotechnical Properties Heatmaps', fontsize=20)
+plt.savefig('heatmaps_2x1.png', dpi=500)

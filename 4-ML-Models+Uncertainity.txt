@@ -1,0 +1,310 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, KFold, RandomizedSearchCV, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.neural_network import MLPRegressor
+from scipy.stats import randint
+import matplotlib.pyplot as plt
+import seaborn as sns
+import lightgbm as lgb
+import xgboost as xgb
+from catboost import CatBoostRegressor
+
+# Set global font family and size
+plt.rc('font', family='DejaVu Serif')
+plt.rc('font', size=14)
+
+# --- 1) File path ---
+# Please update this file path to where your data is located.
+data_filepath = r"/content/WEKA-5-Goesyntetic.csv"
+# --- 2) Load raw strain–stress data ---
+print("\n=== Loading strain-stress data ===")
+# The new data has metadata in the first row. We'll load it without a header first.
+df_raw = pd.read_csv(data_filepath, header=None)
+print(df_raw.head())
+# --- 3) Extract metadata and strain ---
+# The first row contains the metadata for each test (S, G, OMC, NS)
+metadata_row = df_raw.iloc[0, 1:]
+# The 'STRAIN' column is the first one.
+strain = pd.to_numeric(df_raw.iloc[2:, 0], errors='coerce')
+# --- 4) Parse stress columns + metadata ---
+dfs = []
+test_id = 1
+# Iterate through each stress column, starting from the second column (index 1)
+# We need to filter out NaN values at the end of the metadata row.
+for i, col_data in enumerate(metadata_row):
+    # Check if the column data is a string and not NaN
+    if isinstance(col_data, str) and pd.notna(col_data):
+        # Split the metadata string by commas
+        parts = col_data.split(',')
+        # Extract the new features by splitting on '='
+        S = float(parts[0].split('=')[1])
+        G = float(parts[1].split('=')[1])
+        OMC = float(parts[2].split('=')[1])
+        NS = float(parts[3].split('=')[1])
+        # Extract the stress data for the current column
+        stress_values = pd.to_numeric(df_raw.iloc[2:, i + 1], errors='coerce')
+        df_temp = pd.DataFrame({
+            'Strain': strain,
+            'Stress_kPa': stress_values,
+            'S': S,
+            'G': G,
+            'OMC': OMC,
+            'NS': NS,
+            'Test': test_id
+        })
+        dfs.append(df_temp)
+        test_id += 1
+    else:
+        # If the column data is not a string (e.g., NaN), skip this column
+        print(f"Skipping column {i+1} due to invalid metadata: {col_data}")
+# --- 5) Combine & clean ---
+df = pd.concat(dfs, ignore_index=True)
+df = df.dropna(subset=['Stress_kPa'])
+print("\n=== Combined tidy data ===")
+print(df.head())
+# --- 6) Prepare X and y ---
+features = ['S', 'G', 'OMC', 'NS', 'Strain']
+X = df[features]
+y = df['Stress_kPa']
+# --- 7) Scale ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+# --- 8) Split: 70% train, 30% temp ---
+X_train, X_temp, y_train, y_temp = train_test_split(
+    X_scaled, y, test_size=0.30, random_state=42
+)
+# --- 9) Split temp: 50% val, 50% test → each 15% of original ---
+X_val, X_final_test, y_val, y_final_test = train_test_split(
+    X_temp, y_temp, test_size=0.50, random_state=42
+)
+# Combine train and validation sets for CV and final model training
+X_train_val = np.vstack((X_train, X_val))
+y_train_val = pd.concat([y_train, y_val])
+print(f"\nTrain + Validation Set: {X_train_val.shape}")
+print(f"Final Test Set: {X_final_test.shape}")
+
+# Define models and their hyperparameter distributions
+models = {
+    'LightGBM': {
+        'estimator': lgb.LGBMRegressor(random_state=42, verbose=-1),
+        'param_dist': {
+            'num_leaves': randint(20, 100),
+            'learning_rate': [0.01, 0.05, 0.1],
+            'n_estimators': randint(100, 500),
+            'reg_alpha': [0, 0.1, 0.5, 1],
+            'reg_lambda': [0, 0.1, 0.5, 1]
+        }
+    },
+    'MLP': {
+        'estimator': MLPRegressor(random_state=42, max_iter=500, early_stopping=True),
+        'param_dist': {
+            'hidden_layer_sizes': [(50,), (100,), (50, 50), (100, 50)],
+            'activation': ['tanh', 'relu'],
+            'alpha': [0.0001, 0.001, 0.01],
+            'learning_rate': ['constant', 'adaptive']
+        }
+    },
+    'XGBoost': {
+        'estimator': xgb.XGBRegressor(random_state=42, verbosity=0),
+        'param_dist': {
+            'max_depth': randint(3, 10),
+            'learning_rate': [0.01, 0.05, 0.1],
+            'n_estimators': randint(100, 500),
+            'reg_alpha': [0, 0.1, 0.5, 1],
+            'reg_lambda': [0, 0.1, 0.5, 1]
+        }
+    },
+    'CatBoost': {
+        'estimator': CatBoostRegressor(random_state=42, verbose=0),
+        'param_dist': {
+            'depth': randint(3, 10),
+            'learning_rate': [0.01, 0.05, 0.1],
+            'iterations': randint(100, 500),
+            'l2_leaf_reg': [1, 3, 5, 7, 9]
+        }
+    }
+}
+
+# Colors for models using seaborn light palettes
+model_colors = {}
+for model_name in models:
+    if model_name == 'LightGBM':
+        base_color = 'blue'
+    elif model_name == 'MLP':
+        base_color = 'orange'
+    elif model_name == 'XGBoost':
+        base_color = 'red'
+    elif model_name == 'CatBoost':
+        base_color = 'green'
+    model_colors[model_name] = sns.light_palette(base_color, n_colors=6)[3]  # Select a light shade
+
+# K-Fold for CV
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+# Dictionary to store results
+results = {}
+
+# --- 10) Hyperparameter tuning and evaluation for each model ---
+for model_name, model_data in models.items():
+    print(f"\n=== Hyperparameter Tuning for {model_name} ===")
+    estimator = model_data['estimator']
+    param_dist = model_data['param_dist']
+    
+    rand_search = RandomizedSearchCV(
+        estimator,
+        param_distributions=param_dist,
+        n_iter=10,
+        cv=kf,
+        scoring='neg_mean_squared_error',
+        random_state=42,
+        n_jobs=-1
+    )
+    rand_search.fit(X_train_val, y_train_val)
+    
+    best_params = rand_search.best_params_
+    print(f"Best Hyperparameters for {model_name}: {best_params}")
+    
+    # --- 11) K-Fold Cross-Validation ---
+    print(f"\n=== K-Fold Cross-Validation for {model_name} ===")
+    best_cv_model = estimator.__class__(**best_params, random_state=42)
+    if model_name == 'LightGBM':
+        best_cv_model.set_params(verbose=-1)
+    elif model_name == 'XGBoost':
+        best_cv_model.set_params(verbosity=0)
+    elif model_name == 'CatBoost':
+        best_cv_model.set_params(verbose=0)
+    elif model_name == 'MLP':
+        best_cv_model.set_params(max_iter=500, early_stopping=True)
+    
+    r2_scores = cross_val_score(best_cv_model, X_train_val, y_train_val, cv=kf, scoring='r2')
+    rmse_scores = np.sqrt(-cross_val_score(best_cv_model, X_train_val, y_train_val, cv=kf, scoring='neg_mean_squared_error'))
+    print(f"Cross-Validation R² Scores: {np.round(r2_scores, 4)}")
+    print(f"Average Cross-Validation R²: {r2_scores.mean():.4f} ± {r2_scores.std():.4f}")
+    print(f"\nCross-Validation RMSE Scores: {np.round(rmse_scores, 4)}")
+    print(f"Average Cross-Validation RMSE: {rmse_scores.mean():.4f} ± {rmse_scores.std():.4f}")
+    
+    # --- 12) Train ensemble for uncertainty ---
+    n_ensemble = 10
+    ensemble = []
+    for i in range(n_ensemble):
+        model = estimator.__class__(**best_params, random_state=42 + i)
+        if model_name == 'LightGBM':
+            model.set_params(verbose=-1)
+        elif model_name == 'XGBoost':
+            model.set_params(verbosity=0)
+        elif model_name == 'CatBoost':
+            model.set_params(verbose=0)
+        elif model_name == 'MLP':
+            model.set_params(max_iter=500, early_stopping=True)
+        model.fit(X_train_val, y_train_val)
+        ensemble.append(model)
+    
+    # --- 13) Predict on final test set ---
+    all_preds = np.array([m.predict(X_final_test) for m in ensemble])
+    y_pred = np.mean(all_preds, axis=0)
+    y_std = np.std(all_preds, axis=0)
+    lower = y_pred - 1.96 * y_std
+    upper = y_pred + 1.96 * y_std
+    
+    mae = mean_absolute_error(y_final_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_final_test, y_pred))
+    r2 = r2_score(y_final_test, y_pred)
+    
+    print(f"\n=== Final Test Metrics for {model_name} on Unseen Data ===")
+    print(f"MAE: {mae:.4f}")
+    print(f"RMSE: {rmse:.4f}")
+    print(f"R2: {r2:.4f}")
+    
+    # Store results
+    results[model_name] = {
+        'y_pred': y_pred,
+        'lower': lower,
+        'upper': upper,
+        'mae': mae,
+        'rmse': rmse,
+        'r2': r2
+    }
+
+# --- 14) Actual vs Predicted plots in 2x2 grid ---
+fig, axs = plt.subplots(2, 2, figsize=(16, 16))
+axs = axs.flatten()
+y_final_test_reset = y_final_test.reset_index(drop=True)
+
+for i, model_name in enumerate(models.keys()):
+    ax = axs[i]
+    res = results[model_name]
+    y_pred = res['y_pred']
+    mae = res['mae']
+    rmse = res['rmse']
+    r2 = res['r2']
+    
+    ax.scatter(
+        y_final_test_reset, y_pred,
+        color=model_colors[model_name], edgecolor='black', alpha=0.7, s=50, label='Predictions'
+    )
+    min_val = min(y_final_test_reset.min(), y_pred.min())
+    max_val = max(y_final_test_reset.max(), y_pred.max())
+    padding = (max_val - min_val) * 0.05
+    ax.plot(
+        [min_val - padding, max_val + padding],
+        [min_val - padding, max_val + padding],
+        'r--', lw=2, label='Ideal Fit (y = x)'
+    )
+    ax.set_xlim(min_val - padding, max_val + padding)
+    ax.set_ylim(min_val - padding, max_val + padding)
+    ax.set_aspect('equal', adjustable='box')
+    ax.set_xlabel('Actual Stress (kPa)', fontsize=16)
+    ax.set_ylabel('Predicted Stress (kPa)', fontsize=16)
+    ax.set_title(f'Actual vs. Predicted ({model_name})', fontsize=18)
+    ax.text(
+        0.05, 0.95,
+        f'RMSE: {rmse:.4f} kPa\nMAE: {mae:.4f} kPa\nR²: {r2:.4f}',
+        transform=ax.transAxes,
+        fontsize=14, verticalalignment='top',
+        bbox=dict(boxstyle='round,pad=0.5', facecolor='wheat', alpha=0.5)
+    )
+    ax.legend(prop={'size': 14}, loc='lower right')
+    ax.grid(True, linestyle='--', color='gray', linewidth=0.5, alpha=0.5)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+
+plt.tight_layout()
+plt.savefig(r"Actual_vs_Predicted_All_Models.png", dpi=600)
+plt.show()
+
+# --- 15) Uncertainty interval plots in 2x2 grid ---
+fig, axs = plt.subplots(2, 2, figsize=(16, 16))
+axs = axs.flatten()
+
+for i, model_name in enumerate(models.keys()):
+    ax = axs[i]
+    res = results[model_name]
+    y_pred = res['y_pred']
+    lower = res['lower']
+    upper = res['upper']
+    
+    y_final_test_reset = y_final_test.reset_index(drop=True)
+    sorted_idx = np.argsort(y_final_test_reset)
+    actual_sorted = y_final_test_reset.iloc[sorted_idx]
+    pred_sorted = y_pred[sorted_idx]
+    lower_sorted = lower[sorted_idx]
+    upper_sorted = upper[sorted_idx]
+    
+    n_samples = len(actual_sorted)
+    ax.plot(range(n_samples), actual_sorted, label='Actual', color='black', lw=2)
+    ax.plot(range(n_samples), pred_sorted, label='Predicted', color=model_colors[model_name], lw=2)
+    ax.fill_between(range(n_samples), lower_sorted, upper_sorted, color=model_colors[model_name], alpha=0.3, label='95% CI')
+    
+    ax.set_xlabel('Samples (sorted by actual stress)', fontsize=16)
+    ax.set_ylabel('Stress (kPa)', fontsize=16)
+    ax.set_title(f'Uncertainty Intervals ({model_name})', fontsize=18)
+    ax.legend(prop={'size': 14}, loc='upper left')
+    ax.grid(True, linestyle='--', color='gray', linewidth=0.5, alpha=0.5)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+
+plt.tight_layout()
+plt.savefig(r"Uncertainty_Intervals_All_Models.png", dpi=600)
+plt.show()
+
+print("\n=== Finished ===")

@@ -1,0 +1,206 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, KFold, RandomizedSearchCV, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.feature_selection import mutual_info_regression
+from scipy.stats import randint
+import matplotlib.pyplot as plt
+import seaborn as sns
+from catboost import CatBoostRegressor
+import shap
+
+# Set global font family and size
+plt.rc('font', family='DejaVu Serif')
+plt.rc('font', size=14)
+
+# --- 1) File path ---
+# Please update this file path to where your data is located.
+data_filepath = r"/content/WEKA-5-Goesyntetic.csv"
+# --- 2) Load raw strain–stress data ---
+print("\n=== Loading strain-stress data ===")
+# The new data has metadata in the first row. We'll load it without a header first.
+df_raw = pd.read_csv(data_filepath, header=None)
+print(df_raw.head())
+# --- 3) Extract metadata and strain ---
+# The first row contains the metadata for each test (S, G, OMC, NS)
+metadata_row = df_raw.iloc[0, 1:]
+# The 'STRAIN' column is the first one.
+strain = pd.to_numeric(df_raw.iloc[2:, 0], errors='coerce')
+# --- 4) Parse stress columns + metadata ---
+dfs = []
+test_id = 1
+# Iterate through each stress column, starting from the second column (index 1)
+# We need to filter out NaN values at the end of the metadata row.
+for i, col_data in enumerate(metadata_row):
+    # Check if the column data is a string and not NaN
+    if isinstance(col_data, str) and pd.notna(col_data):
+        # Split the metadata string by commas
+        parts = col_data.split(',')
+        # Extract the new features by splitting on '='
+        S = float(parts[0].split('=')[1])
+        G = float(parts[1].split('=')[1])
+        OMC = float(parts[2].split('=')[1])
+        NS = float(parts[3].split('=')[1])
+        # Extract the stress data for the current column
+        stress_values = pd.to_numeric(df_raw.iloc[2:, i + 1], errors='coerce')
+        df_temp = pd.DataFrame({
+            'Strain': strain,
+            'Stress_kPa': stress_values,
+            'S': S,
+            'G': G,
+            'OMC': OMC,
+            'NS': NS,
+            'Test': test_id
+        })
+        dfs.append(df_temp)
+        test_id += 1
+    else:
+        # If the column data is not a string (e.g., NaN), skip this column
+        print(f"Skipping column {i+1} due to invalid metadata: {col_data}")
+# --- 5) Combine & clean ---
+df = pd.concat(dfs, ignore_index=True)
+df = df.dropna(subset=['Stress_kPa'])
+print("\n=== Combined tidy data ===")
+print(df.head())
+# --- 6) Prepare X and y ---
+features = ['S', 'G', 'OMC', 'NS', 'Strain']
+X = df[features]
+y = df['Stress_kPa']
+# --- 7) Scale ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+# --- 8) Split: 70% train, 30% temp ---
+X_train, X_temp, y_train, y_temp = train_test_split(
+    X_scaled, y, test_size=0.30, random_state=42
+)
+# --- 9) Split temp: 50% val, 50% test → each 15% of original ---
+X_val, X_final_test, y_val, y_final_test = train_test_split(
+    X_temp, y_temp, test_size=0.50, random_state=42
+)
+# Combine train and validation sets for CV and final model training
+X_train_val = np.vstack((X_train, X_val))
+y_train_val = pd.concat([y_train, y_val])
+print(f"\nTrain + Validation Set: {X_train_val.shape}")
+print(f"Final Test Set: {X_final_test.shape}")
+
+# CatBoost hyperparameter distributions
+param_dist = {
+    'depth': randint(3, 10),
+    'learning_rate': [0.01, 0.05, 0.1],
+    'iterations': randint(100, 500),
+    'l2_leaf_reg': [1, 3, 5, 7, 9]
+}
+
+# K-Fold for CV
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+# --- 10) Hyperparameter tuning ---
+print("\n=== Hyperparameter Tuning for CatBoost ===")
+estimator = CatBoostRegressor(random_state=42, verbose=0)
+rand_search = RandomizedSearchCV(
+    estimator,
+    param_distributions=param_dist,
+    n_iter=10,
+    cv=kf,
+    scoring='neg_mean_squared_error',
+    random_state=42,
+    n_jobs=-1
+)
+rand_search.fit(X_train_val, y_train_val)
+
+best_params = rand_search.best_params_
+print(f"Best Hyperparameters for CatBoost: {best_params}")
+
+# --- 11) K-Fold Cross-Validation ---
+print("\n=== K-Fold Cross-Validation for CatBoost ===")
+best_cv_model = CatBoostRegressor(**best_params, random_state=42, verbose=0)
+
+r2_scores = cross_val_score(best_cv_model, X_train_val, y_train_val, cv=kf, scoring='r2')
+rmse_scores = np.sqrt(-cross_val_score(best_cv_model, X_train_val, y_train_val, cv=kf, scoring='neg_mean_squared_error'))
+print(f"Cross-Validation R² Scores: {np.round(r2_scores, 4)}")
+print(f"Average Cross-Validation R²: {r2_scores.mean():.4f} ± {r2_scores.std():.4f}")
+print(f"\nCross-Validation RMSE Scores: {np.round(rmse_scores, 4)}")
+print(f"Average Cross-Validation RMSE: {rmse_scores.mean():.4f} ± {rmse_scores.std():.4f}")
+
+# --- 12) Train the final model ---
+model = CatBoostRegressor(**best_params, random_state=42, verbose=0)
+model.fit(X_train_val, y_train_val)
+
+# --- 13) Predict on final test set ---
+y_pred = model.predict(X_final_test)
+
+mae = mean_absolute_error(y_final_test, y_pred)
+rmse = np.sqrt(mean_squared_error(y_final_test, y_pred))
+r2 = r2_score(y_final_test, y_pred)
+
+print("\n=== Final Test Metrics for CatBoost on Unseen Data ===")
+print(f"MAE: {mae:.4f}")
+print(f"RMSE: {rmse:.4f}")
+print(f"R2: {r2:.4f}")
+
+# --- 14) Actual vs Predicted plot ---
+y_final_test_reset = y_final_test.reset_index(drop=True)
+fig, ax = plt.subplots(figsize=(8, 8))
+ax.scatter(
+    y_final_test_reset, y_pred,
+    color='green', edgecolor='black', alpha=0.7, s=50, label='Predictions'
+)
+min_val = min(y_final_test_reset.min(), y_pred.min())
+max_val = max(y_final_test_reset.max(), y_pred.max())
+padding = (max_val - min_val) * 0.05
+ax.plot(
+    [min_val - padding, max_val + padding],
+    [min_val - padding, max_val + padding],
+    'r--', lw=2, label='Ideal Fit (y = x)'
+)
+ax.set_xlim(min_val - padding, max_val + padding)
+ax.set_ylim(min_val - padding, max_val + padding)
+ax.set_aspect('equal', adjustable='box')
+ax.set_xlabel('Actual Stress (kPa)', fontsize=16)
+ax.set_ylabel('Predicted Stress (kPa)', fontsize=16)
+ax.set_title('Actual vs. Predicted (CatBoost)', fontsize=18)
+ax.text(
+    0.05, 0.95,
+    f'RMSE: {rmse:.4f} kPa\nMAE: {mae:.4f} kPa\nR²: {r2:.4f}',
+    transform=ax.transAxes,
+    fontsize=14, verticalalignment='top',
+    bbox=dict(boxstyle='round,pad=0.5', facecolor='wheat', alpha=0.5)
+)
+ax.legend(prop={'size': 14}, loc='lower right')
+ax.grid(True, linestyle='--', color='gray', linewidth=0.5, alpha=0.5)
+ax.tick_params(axis='both', which='major', labelsize=14)
+plt.tight_layout()
+plt.savefig(r"Actual_vs_Predicted_CatBoost.png", dpi=600)
+plt.show()
+
+# --- 15) Feature Importance: SHAP and Mutual Information ---
+# Compute Mutual Information
+mi = mutual_info_regression(X_train_val, y_train_val)
+mi = pd.Series(mi, index=features)
+
+# Compute SHAP values
+explainer = shap.Explainer(model)
+shap_values = explainer(X_train_val)
+shap_importance = pd.Series(np.abs(shap_values.values).mean(axis=0), index=features)
+
+# Normalize for comparison if needed, but plot raw
+fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+
+# SHAP bar plot
+shap_importance.sort_values(ascending=True).plot(kind='barh', ax=axs[0], color='skyblue')
+axs[0].set_title('SHAP Feature Importance', fontsize=16)
+axs[0].set_xlabel('Mean |SHAP value|', fontsize=14)
+axs[0].tick_params(axis='both', which='major', labelsize=12)
+
+# MI bar plot
+mi.sort_values(ascending=True).plot(kind='barh', ax=axs[1], color='lightgreen')
+axs[1].set_title('Mutual Information', fontsize=16)
+axs[1].set_xlabel('MI Score', fontsize=14)
+axs[1].tick_params(axis='both', which='major', labelsize=12)
+
+plt.tight_layout()
+plt.savefig(r"Feature_Importance_SHAP_MI.png", dpi=600)
+plt.show()
+
+print("\n=== Finished ===")
