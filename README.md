@@ -2,9 +2,9 @@
 
 ### 📝 Status
 
-**Journal:** Geotechnical and Geological Engineering (Submitted)
+**Journal:** Structure and Infrastructure Engineering (Submitted)
 **License:** [![Status](https://img.shields.io/badge/Status-Submitted-blue)](https://www.Elsevier.com/journal/11069)
-[![Journal](https://img.shields.io/badge/Journal-GeotechnicalandGeologicalEngineering-orange)](https://www.Elsevier.com/journal/11069)
+[![Journal](https://img.shields.io/badge/Journal-StructureandInfrastructureEngineering-orange)](https://www.Elsevier.com/journal/11069)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
@@ -20,7 +20,7 @@ Keywords: Geosynthetics; marginal soil; soil-geosynthetic interface; Machine Lea
 This repository includes the source codes and methodology for the article:
 
 **"Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms"**,
-submitted to *Geotechnical and Geological Engineering*.
+submitted to *Structure and Infrastructure Engineering*.
 
 
 ## 👥 Authors
@@ -49,7 +49,7 @@ If you use this repository, please cite the following manuscript:
 @article{Ebrahimi Derakhshan 2025 Subsidence,
   title={Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms},
   author={Razeghi, Hamid Reza ;Mamaghanian, Jaber ;Ebrahimi Derakhshan, Masoud;  Ramzani, Mehrab and Ensani, Abbas},
-  journal={Geotechnical and Geological Engineering},
+  journal={Structure and Infrastructure Engineering},
   year={2025},
   note={Submitted}
 }
