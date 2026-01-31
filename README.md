@@ -2,9 +2,9 @@
 
 ### 📝 Status
 
-**Journal:** Structure and Infrastructure Engineering (Submitted)
+**Journal:** Journal of Earth System Science (Submitted)
 **License:** [![Status](https://img.shields.io/badge/Status-Submitted-blue)](https://www.Elsevier.com/journal/11069)
-[![Journal](https://img.shields.io/badge/Journal-StructureandInfrastructureEngineering-orange)](https://www.Elsevier.com/journal/11069)
+[![Journal](https://img.shields.io/badge/Journal-JournalofEarthSystemScience-orange)](https://www.Elsevier.com/journal/11069)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
@@ -20,7 +20,7 @@ Keywords: Geosynthetics; marginal soil; soil-geosynthetic interface; Machine Lea
 This repository includes the source codes and methodology for the article:
 
 **"Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms"**,
-submitted to *Structure and Infrastructure Engineering*.
+submitted to *Journal of Earth System Science*.
 
 
 ## 👥 Authors
@@ -33,9 +33,6 @@ submitted to *Structure and Infrastructure Engineering*.
 * **Masoud Ebrahimi Derakhshan**
     * *School of Civil Engineering, Iran University of Science and Technology (IUST), Tehran, Iran*
     * [![ORCID](https://img.shields.io/badge/ORCID-0009--0009--3453--8304-green)](https://orcid.org/0009-0009-3453-8304)
-* **Mehrab Ramzani**
-    * *School of Civil Engineering, Iran University of Science and Technology (IUST), Tehran, Iran*
-    * [![ORCID](https://img.shields.io/badge/ORCID-0009--0003--7281--3051-green)](https://orcid.org/0009-0009-3453-8304)
 * **Abbas Ensani**
     * *School of Civil Engineering, Iran University of Science and Technology (IUST), Tehran, Iran*
     * [![ORCID](https://img.shields.io/badge/ORCID-0009--0001--6984--3028-green)](https://orcid.org/0009-0009-3453-8304)
@@ -48,8 +45,8 @@ If you use this repository, please cite the following manuscript:
 ```
 @article{Ebrahimi Derakhshan 2025 Subsidence,
   title={Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms},
-  author={Razeghi, Hamid Reza ;Mamaghanian, Jaber ;Ebrahimi Derakhshan, Masoud;  Ramzani, Mehrab and Ensani, Abbas},
-  journal={Structure and Infrastructure Engineering},
+  author={Razeghi, Hamid Reza ;Mamaghanian, Jaber ;Ebrahimi Derakhshan, Masoud and Ensani, Abbas},
+  journal={Journal of Earth System Science},
   year={2025},
   note={Submitted}
 }
