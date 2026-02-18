@@ -4,7 +4,7 @@
 
 **Journal:** Journal of Earth System Science (Submitted)
 **License:** [![Status](https://img.shields.io/badge/Status-Submitted-blue)](https://www.Elsevier.com/journal/11069)
-[![Journal](https://img.shields.io/badge/Journal-JournalofEarthSystemScience-orange)](https://www.Elsevier.com/journal/11069)
+[![Journal](https://img.shields.io/badge/Journal-Journal-orange)](https://www.Elsevier.com/journal/11069)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
@@ -19,8 +19,7 @@ Keywords: Geosynthetics; marginal soil; soil-geosynthetic interface; Machine Lea
 
 This repository includes the source codes and methodology for the article:
 
-**"Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms"**,
-submitted to *Journal of Earth System Science*.
+**"Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms"**
 
 
 ## 👥 Authors
@@ -46,8 +45,8 @@ If you use this repository, please cite the following manuscript:
 @article{Ebrahimi Derakhshan 2025 Subsidence,
   title={Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms},
   author={Razeghi, Hamid Reza ;Mamaghanian, Jaber ;Ebrahimi Derakhshan, Masoud and Ensani, Abbas},
-  journal={Journal of Earth System Science},
-  year={2025},
+  journal={-},
+  year={2026},
   note={Submitted}
 }
 ```
