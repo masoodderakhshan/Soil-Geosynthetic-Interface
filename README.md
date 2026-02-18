@@ -41,7 +41,7 @@ This repository includes the source codes and methodology for the article:
 If you use this repository, please cite the following manuscript:
 
 ```
-@article{Ebrahimi Derakhshan 2025 Subsidence,
+@article{Razeghi 2026 Subsidence,
   title={Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms},
   author={Razeghi, Hamid Reza ;Mamaghanian, Jaber ;Ebrahimi Derakhshan, Masoud and Ensani, Abbas},
   journal={-},
