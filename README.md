@@ -1,4 +1,4 @@
-# Machine Learning Modelling and Interpretation of Soil–Geosynthetic Interface Shear Behaviour: A Comparison of Gradient Boosting and Neural Network Algorithms
+# From Prediction to Physical Archetypes: Machine Learning for Marginal Soil-Geosynthetic Interface Shear Behaviour
 
 ### 📝 Status
 
